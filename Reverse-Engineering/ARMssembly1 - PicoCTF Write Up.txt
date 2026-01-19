@@ -1,0 +1,94 @@
+Analisis Masalah : 
+
+1. stores :
+ 
+   sub sp, sp, #32
+   str w0, [sp, 12] 
+   mov w0, 86         #a
+   str w0, [sp, 16] 
+   mov w0, 3  	      #b
+   str w0, [sp, 20] 
+   mov w0, 3	      #c
+   str w0, [sp, 24]
+   
+   Pada bagian ini, khususnya pada - mov w0, 88 - value 88 disimpan dalam w0. Tetapi,
+   pada bagian selanjutnya akan lebih detail sebagai berikut : 
+   
+   - str w0, [sp, 12] -> menyimpan stack pointer + 12 di W0
+   - mov w0, 86       -> value 88 disimpan pada W0
+   - str w0, [sp, 16] -> w0 disimpan di stack offset 16 | stack pointer + 16 = 86
+   - mov w0, 3        -> value 3 disimpan pada W0
+   - str w0, [sp, 20] -> w0 disimpan di stack offset 20 | stack pointer + 20 = 3
+   - mov w0, 3        -> value 3 disimpan pada W0
+   - str w0, [sp, 24] -> w0 disimpan di stack offset 24 | stack pointer + 24 = 3
+
+2. part 2 (selanjutnya)
+
+   ldr	w0, [sp, 20]
+   ldr	w1, [sp, 16]
+   lsl	w0, w1, w0
+   str	w0, [sp, 28]
+
+   Detail bagian ini : 
+   - ldr w0, [sp, 20] -> stack pointer + 20 disimpan di w0 sehingga w0 = 3
+   - ldr w1, [sp, 16] -> stack pointer + 16 disimpan di w1 sehingga w1 = 86
+   - lsl memiliki format --- lsl DEST, SRC, SHIFT, artinya DEST = SRC << SHIFT
+     sehingga w0 = w1 << w0 = 86 << 3. Dalam perhitungannya, operasi ini menjadi
+     86 * (2^n) dimana n = SHIFT sehingga 86 * (2^3) = 688 (dalam desimal).
+     Sehingga hasil dari w0 = 688
+   - w0, [sp, 28] -> stack pointer + 28 = 688
+
+3. Part 3 (selanjutnya)
+   ldr	w1, [sp, 28]
+   ldr	w0, [sp, 24]
+   sdiv	w0, w1, w0
+   str	w0, [sp, 28]
+
+   Detail bagian ini : 
+   - ldr w1, [sp, 28] -> loading value 688 dari stack pointer + 28 ke w1
+   - ldr w0, [sp, 24] -> loading value 3 dari stack pointer + 24 ke w0
+   - sdiv w0, w1, w0 -> FORMAT sdiv DEST, NUMERATOR, DENOMINATOR. Artinya
+     DEST = NUMERATOR / DENOMINATOR. sehingga w0 = w1 / w0 = 688 / 3 sehingga
+     w0 = 229.333 dibulatkan kebawah (truncated) menjadi 229.
+   - str w0, [sp, 28] -> w0 disimpan di stack pointer + 28 | 
+     stack pointer + 28 = 229.
+
+4. Rangkuman stack pointer : 
+   
+   stack pointer + 12 = user input (x)
+   stack pointer + 16 = 86
+   stack pointer + 20 = 3
+   stack pointer + 24 = 3
+   stack pointer + 28 = 229
+
+5. Part terakhir dari func1 : 
+
+   ldr	w1, [sp, 28]
+   ldr	w0, [sp, 12]
+   sub	w0, w1, w0
+   str	w0, [sp, 28]
+   ldr	w0, [sp, 28]
+   add	sp, sp, 32
+   ret
+
+   Detail bagian ini : 
+   - ldr w1, [sp, 28] -> load 229 ke w1 | w1 = 229
+   - ldr w0, [sp, 12] -> load x ke w0
+   - sub w0, w1, w0   -> w0 = w1 - w0 = 229 - x
+   - str w0, [sp, 28] -> stack pointer + 28 = 229 - x
+   - ldr w0, [sp, 28] -> load 229 - x ke w0
+   - add sp, sp, 32   -> sp = sp + 32
+   - ret              -> returnn w0 yaitu returnn 229 - x
+
+
+6. Pada main function, kita bisalihat terdapat fungsi func1 di call lalu di bandingkan
+   dengan 0, lalu bne (branch if not equal) ke fungsi .L4 dimana isi fungsi .L4 itu 
+   mereturn fungsi .LC1 yang isinya adalah pengembalian string "You lose :(". Sehingga
+   kita bisa asumsikan kalau mau menang, maka W0 harus sama dengan 0 sebagai berikut :
+   w0    =    0
+   229-x =    0
+       x =  229
+
+   lalu kita jadikan x menjadi hex sehingga x = 0xe5.
+
+   sehingga flag = picoCTF{000000e5}
